@@ -1,0 +1,31 @@
+# Environment variables (contains secrets)
+.env
+.env.*
+!.env.example
+
+# n8n data volume (if stored locally)
+n8n_data/
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node modules (if any local scripts)
+node_modules/
+
+# Backup files
+*.backup
+*.bak
