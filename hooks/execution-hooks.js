@@ -1,36 +1,50 @@
 console.log("[HOOK FILE] execution-hooks.js loaded at:", new Date().toISOString());
 
-// Supabase configuration from environment variables
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+// PostgreSQL configuration using pg (node-postgres)
+const { Pool } = require('pg');
+const pool = new Pool({
+  host: process.env.DB_POSTGRESDB_HOST || 'localhost',
+  port: parseInt(process.env.DB_POSTGRESDB_PORT || '5432', 10),
+  database: process.env.DB_POSTGRESDB_DATABASE || 'n8n',
+  user: process.env.DB_POSTGRESDB_USER || 'n8n',
+  password: process.env.DB_POSTGRESDB_PASSWORD,
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+});
 
-// Helper function to insert execution log into Supabase
-async function logToSupabase(data) {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-    console.log("[HOOK] Supabase not configured, skipping database insert");
-    return;
-  }
+// Helper function to insert execution log into PostgreSQL
+async function logToPostgres(data) {
+  const query = `
+    INSERT INTO n8n_execution_logs (
+      execution_id, workflow_id, workflow_name, status, finished,
+      started_at, finished_at, duration_ms, mode, node_count,
+      error_message, execution_data, workflow_data
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+    ON CONFLICT (execution_id) DO NOTHING
+  `;
+
+  const values = [
+    data.execution_id,
+    data.workflow_id,
+    data.workflow_name,
+    data.status,
+    data.finished,
+    data.started_at,
+    data.finished_at,
+    data.duration_ms,
+    data.mode,
+    data.node_count,
+    data.error_message,
+    JSON.stringify(data.execution_data),
+    JSON.stringify(data.workflow_data),
+  ];
 
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/n8n_execution_logs`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": SUPABASE_SERVICE_KEY,
-        "Authorization": `Bearer ${SUPABASE_SERVICE_KEY}`,
-        "Prefer": "return=minimal",
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[HOOK] Supabase insert failed:", response.status, errorText);
-    } else {
-      console.log("[HOOK] Execution logged to Supabase:", data.execution_id);
-    }
+    await pool.query(query, values);
+    console.log("[HOOK] Execution logged to PostgreSQL:", data.execution_id);
   } catch (error) {
-    console.error("[HOOK] Supabase error:", error.message);
+    console.error("[HOOK] PostgreSQL insert failed:", error.message);
   }
 }
 
@@ -39,10 +53,11 @@ module.exports = {
     ready: [
       async function () {
         console.log("[HOOK] n8n.ready - Server is ready!");
-        if (SUPABASE_URL) {
-          console.log("[HOOK] Supabase integration enabled");
-        } else {
-          console.log("[HOOK] Supabase not configured (set SUPABASE_URL and SUPABASE_SERVICE_KEY)");
+        try {
+          const result = await pool.query('SELECT NOW()');
+          console.log("[HOOK] PostgreSQL connection verified at:", result.rows[0].now);
+        } catch (error) {
+          console.error("[HOOK] PostgreSQL connection failed:", error.message);
         }
       },
     ],
@@ -90,7 +105,7 @@ module.exports = {
             ? new Date(stoppedAt).getTime() - new Date(startedAt).getTime()
             : null;
 
-        // Prepare log data for Supabase
+        // Prepare log data
         const logData = {
           execution_id: executionId,
           workflow_id: workflowData?.id,
@@ -134,8 +149,8 @@ module.exports = {
           )
         );
 
-        // Send to Supabase
-        await logToSupabase(logData);
+        // Send to PostgreSQL
+        await logToPostgres(logData);
       },
     ],
   },
