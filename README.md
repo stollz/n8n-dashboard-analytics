@@ -124,7 +124,7 @@ WEBHOOK_URL=http://localhost:5678/
 
 # Tell n8n to load the execution hooks
 # Use the ABSOLUTE path to the hooks file on your system
-N8N_EXTERNAL_HOOKS=/home/your-user/n8n-dashboard-analytics/hooks/execution-hooks.js
+EXTERNAL_HOOK_FILES=/absolute/path/to/n8n-dashboard-analytics/hooks/execution-hooks.js
 
 # PostgreSQL Configuration
 DB_POSTGRESDB_HOST=localhost
@@ -134,7 +134,7 @@ DB_POSTGRESDB_USER=n8n
 DB_POSTGRESDB_PASSWORD=your-secure-password
 ```
 
-**Important**: `N8N_EXTERNAL_HOOKS` must be an **absolute path** to `hooks/execution-hooks.js` on your filesystem.
+**Important**: `EXTERNAL_HOOK_FILES` must be an **absolute path** to `hooks/execution-hooks.js` on your filesystem.
 
 ### Step 5: Start n8n
 
@@ -304,9 +304,9 @@ psql -h localhost -U n8n -d n8n -f schema.sql
 
 ### Hooks not loading at all
 
-- Verify `N8N_EXTERNAL_HOOKS` is set and points to the **absolute path** of `hooks/execution-hooks.js`
+- Verify `EXTERNAL_HOOK_FILES` is set and points to the **absolute path** of `hooks/execution-hooks.js`
 - Check the file is readable: `ls -la hooks/execution-hooks.js`
-- Verify the env var is exported: `echo $N8N_EXTERNAL_HOOKS`
+- Verify the env var is exported: `echo $EXTERNAL_HOOK_FILES`
 
 ### n8n starts but no data appears in the database
 

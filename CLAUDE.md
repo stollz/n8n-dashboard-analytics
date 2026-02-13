@@ -49,7 +49,7 @@ Configured in `.env` (gitignored). Required:
 - `DB_POSTGRESDB_DATABASE` — Database name (default: `n8n`)
 - `DB_POSTGRESDB_USER` — Database user (default: `n8n`)
 - `DB_POSTGRESDB_PASSWORD` — Database password
-- `N8N_EXTERNAL_HOOKS=/opt/n8n/hooks/execution-hooks.js` — Tells n8n to load the hooks file
+- `EXTERNAL_HOOK_FILES=/opt/n8n/hooks/execution-hooks.js` — Tells n8n to load the hooks file
 
 ## Key Implementation Details
 
