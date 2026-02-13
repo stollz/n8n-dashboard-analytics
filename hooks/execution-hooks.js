@@ -1,20 +1,29 @@
 console.log("[HOOK FILE] execution-hooks.js loaded at:", new Date().toISOString());
 
 // PostgreSQL configuration using pg (node-postgres)
-const { Pool } = require('pg');
-const pool = new Pool({
-  host: process.env.DB_POSTGRESDB_HOST || 'localhost',
-  port: parseInt(process.env.DB_POSTGRESDB_PORT || '5432', 10),
-  database: process.env.DB_POSTGRESDB_DATABASE || 'n8n',
-  user: process.env.DB_POSTGRESDB_USER || 'n8n',
-  password: process.env.DB_POSTGRESDB_PASSWORD,
-  max: 5,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+let pool = null;
+try {
+  const { Pool } = require('pg');
+  pool = new Pool({
+    host: process.env.DB_POSTGRESDB_HOST || 'localhost',
+    port: parseInt(process.env.DB_POSTGRESDB_PORT || '5432', 10),
+    database: process.env.DB_POSTGRESDB_DATABASE || 'n8n',
+    user: process.env.DB_POSTGRESDB_USER || 'n8n',
+    password: process.env.DB_POSTGRESDB_PASSWORD,
+    max: 5,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+  });
+} catch (error) {
+  console.error("[HOOK] pg module not found — database logging disabled. Install with: npm install pg");
+}
 
 // Helper function to insert execution log into PostgreSQL
 async function logToPostgres(data) {
+  if (!pool) {
+    return;
+  }
+
   const query = `
     INSERT INTO n8n_execution_logs (
       execution_id, workflow_id, workflow_name, status, finished,
@@ -53,6 +62,10 @@ module.exports = {
     ready: [
       async function () {
         console.log("[HOOK] n8n.ready - Server is ready!");
+        if (!pool) {
+          console.warn("[HOOK] PostgreSQL not available — execution logging is disabled");
+          return;
+        }
         try {
           const result = await pool.query('SELECT NOW()');
           console.log("[HOOK] PostgreSQL connection verified at:", result.rows[0].now);
