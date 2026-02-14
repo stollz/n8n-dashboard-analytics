@@ -1,14 +1,30 @@
 console.log("[HOOK FILE] execution-hooks.js loaded at:", new Date().toISOString());
 
+// Log database environment variables for debugging
+const dbConfig = {
+  host: process.env.DB_POSTGRESDB_HOST || 'localhost',
+  port: parseInt(process.env.DB_POSTGRESDB_PORT || '5432', 10),
+  database: process.env.DB_POSTGRESDB_DATABASE,
+  user: process.env.DB_POSTGRESDB_USER,
+  password: process.env.DB_POSTGRESDB_PASSWORD ? '***' : undefined,
+};
+console.log("[HOOK] DB config:", JSON.stringify(dbConfig));
+
+if (!dbConfig.database) console.error("[HOOK] WARNING: DB_POSTGRESDB_DATABASE is not set!");
+if (!dbConfig.user) console.error("[HOOK] WARNING: DB_POSTGRESDB_USER is not set!");
+if (!dbConfig.password || dbConfig.password === '***' && !process.env.DB_POSTGRESDB_PASSWORD) {
+  console.error("[HOOK] WARNING: DB_POSTGRESDB_PASSWORD is not set!");
+}
+
 // PostgreSQL configuration using pg (node-postgres)
 let pool = null;
 try {
   const { Pool } = require('pg');
   pool = new Pool({
-    host: process.env.DB_POSTGRESDB_HOST || 'localhost',
-    port: parseInt(process.env.DB_POSTGRESDB_PORT || '5432', 10),
-    database: process.env.DB_POSTGRESDB_DATABASE || 'n8n',
-    user: process.env.DB_POSTGRESDB_USER || 'n8n',
+    host: dbConfig.host,
+    port: dbConfig.port,
+    database: process.env.DB_POSTGRESDB_DATABASE,
+    user: process.env.DB_POSTGRESDB_USER,
     password: process.env.DB_POSTGRESDB_PASSWORD,
     max: 5,
     idleTimeoutMillis: 30000,
